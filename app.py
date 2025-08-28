@@ -73,7 +73,7 @@ uploaded_file = st.file_uploader("📷 Upload Option Chain Image", type=["png", 
 spot_price = st.number_input("💹 Enter Spot Price", min_value=0.0, value=1000.0, step=1.0)
 
 if uploaded_file and spot_price:
-    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
         img = Image.open(uploaded_file)
         img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
         cv2.imwrite(tmp_file.name, img_cv)
