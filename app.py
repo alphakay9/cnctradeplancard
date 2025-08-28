@@ -12,6 +12,22 @@ import requests
 st.set_page_config(page_title="CNC Trade Planner", layout="centered")
 
 
+# def extract_text_with_ocr_space(image_path, api_key='helloworld'):
+#     with open(image_path, 'rb') as f:
+#         response = requests.post(
+#             'https://api.ocr.space/parse/image',
+#             files={'filename': f},
+#             data={
+#                 'apikey': api_key,
+#                 'language': 'eng',
+#                 'isTable': True
+#             }
+#         )
+#     result = response.json()
+#     return result['ParsedResults'][0]['ParsedText'] if result['IsErroredOnProcessing'] is False else ''
+
+# import requests
+
 def extract_text_with_ocr_space(image_path, api_key='helloworld'):
     with open(image_path, 'rb') as f:
         response = requests.post(
@@ -23,8 +39,20 @@ def extract_text_with_ocr_space(image_path, api_key='helloworld'):
                 'isTable': True
             }
         )
-    result = response.json()
-    return result['ParsedResults'][0]['ParsedText'] if result['IsErroredOnProcessing'] is False else ''
+    
+    try:
+        result = response.json()
+    except Exception:
+        return ''
+
+    if result.get('IsErroredOnProcessing') is False:
+        parsed_results = result.get('ParsedResults')
+        if parsed_results and len(parsed_results) > 0:
+            return parsed_results[0].get('ParsedText', '')
+    
+    # Log the error if needed
+    return ''
+
 
 # 1. Extract table from option chain image
 # def extract_option_chain(image_path):
@@ -45,16 +73,36 @@ def extract_text_with_ocr_space(image_path, api_key='helloworld'):
 
 def extract_option_chain(image_path):
     text = extract_text_with_ocr_space(image_path)
+
+    if not text.strip():
+        st.error("❌ OCR failed to extract text. Please try with a clearer image.")
+        return pd.DataFrame()
+
     lines = text.split("\n")
     data = [line.split() for line in lines if line.strip()]
     df = pd.DataFrame(data)
-    
+
     if len(df.columns) >= 3:
         df = df.iloc[:, :3]
         df.columns = ['Strike', 'Call_OI', 'Put_OI']
     else:
-        st.error("Failed to detect proper columns. Try with a clearer image.")
+        st.error("⚠️ Could not detect proper table structure. Please check the image format.")
+        return pd.DataFrame()
+
     return df
+
+# def extract_option_chain(image_path):
+#     text = extract_text_with_ocr_space(image_path)
+#     lines = text.split("\n")
+#     data = [line.split() for line in lines if line.strip()]
+#     df = pd.DataFrame(data)
+    
+#     if len(df.columns) >= 3:
+#         df = df.iloc[:, :3]
+#         df.columns = ['Strike', 'Call_OI', 'Put_OI']
+#     else:
+#         st.error("Failed to detect proper columns. Try with a clearer image.")
+#     return df
 
 
 # 2. Identify Support & Resistance
@@ -70,6 +118,9 @@ def extract_option_chain(image_path):
 #     return support, resistance
 
 def get_trade_levels(df, spot):
+    if df.empty:
+        st.error("⚠️ No data extracted. Check OCR output or upload a clearer image.")
+
     df['Strike'] = pd.to_numeric(df['Strike'], errors="coerce")
     df['Call_OI'] = pd.to_numeric(df['Call_OI'], errors="coerce")
     df['Put_OI'] = pd.to_numeric(df['Put_OI'], errors="coerce")
