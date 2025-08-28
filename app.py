@@ -170,7 +170,7 @@ st.title("📊 CNC Trade Planner")
 st.markdown("Upload option chain image & enter spot price to get your trade plan.")
 
 uploaded_file = st.file_uploader("📷 Upload Option Chain Image", type=["png", "jpg", "jpeg"])
-spot_price = st.number_input("💹 Enter Spot Price", min_value=0.0, value=23000.0, step=500.0)
+spot_price = st.number_input("💹 Enter Spot Price", min_value=0.0, value=23000.0, step=100.0)
 
 
 
