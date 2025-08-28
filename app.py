@@ -12,7 +12,7 @@ import requests
 st.set_page_config(page_title="CNC Trade Planner", layout="centered")
 
 
-# def extract_text_with_ocr_space(image_path, api_key='helloworld'):
+# def extract_text_with_ocr_space(image_path, api_key='K81944822488957'):
 #     with open(image_path, 'rb') as f:
 #         response = requests.post(
 #             'https://api.ocr.space/parse/image',
