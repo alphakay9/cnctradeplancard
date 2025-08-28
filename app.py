@@ -7,24 +7,55 @@ from matplotlib.patches import FancyBboxPatch
 import tempfile
 from PIL import Image
 import numpy as np
+import requests
 
 st.set_page_config(page_title="CNC Trade Planner", layout="centered")
 
+
+def extract_text_with_ocr_space(image_path, api_key='helloworld'):
+    with open(image_path, 'rb') as f:
+        response = requests.post(
+            'https://api.ocr.space/parse/image',
+            files={'filename': f},
+            data={
+                'apikey': api_key,
+                'language': 'eng',
+                'isTable': True
+            }
+        )
+    result = response.json()
+    return result['ParsedResults'][0]['ParsedText'] if result['IsErroredOnProcessing'] is False else ''
+
 # 1. Extract table from option chain image
+# def extract_option_chain(image_path):
+#     img = cv2.imread(image_path)
+#     text = pytesseract.image_to_string(img)
+#     lines = text.split("\n")
+#     data = [line.split() for line in lines if line.strip()]
+#     df = pd.DataFrame(data)
+    
+#     # Simplified cleaning (assumes 3 columns: Strike, Call_OI, Put_OI)
+#     if len(df.columns) >= 3:
+#         df = df.iloc[:, :3]
+#         df.columns = ['Strike', 'Call_OI', 'Put_OI']
+#     else:
+#         st.error("Failed to detect proper columns. Try with a clearer image.")
+#     return df
+
+
 def extract_option_chain(image_path):
-    img = cv2.imread(image_path)
-    text = pytesseract.image_to_string(img)
+    text = extract_text_with_ocr_space(image_path)
     lines = text.split("\n")
     data = [line.split() for line in lines if line.strip()]
     df = pd.DataFrame(data)
     
-    # Simplified cleaning (assumes 3 columns: Strike, Call_OI, Put_OI)
     if len(df.columns) >= 3:
         df = df.iloc[:, :3]
         df.columns = ['Strike', 'Call_OI', 'Put_OI']
     else:
         st.error("Failed to detect proper columns. Try with a clearer image.")
     return df
+
 
 # 2. Identify Support & Resistance
 def get_trade_levels(df, spot):
@@ -72,6 +103,8 @@ st.markdown("Upload option chain image & enter spot price to get your trade plan
 uploaded_file = st.file_uploader("📷 Upload Option Chain Image", type=["png", "jpg", "jpeg"])
 spot_price = st.number_input("💹 Enter Spot Price", min_value=0.0, value=1000.0, step=1.0)
 
+
+
 if uploaded_file and spot_price:
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
         img = Image.open(uploaded_file)
@@ -88,3 +121,4 @@ if uploaded_file and spot_price:
 
             st.subheader("🧾 CNC Trade Plan Card")
             plot_trade_plan(spot_price, support, resistance)
+
