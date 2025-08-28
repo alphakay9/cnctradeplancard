@@ -58,16 +58,34 @@ def extract_option_chain(image_path):
 
 
 # 2. Identify Support & Resistance
+# def get_trade_levels(df, spot):
+#     df['Strike'] = pd.to_numeric(df['Strike'], errors="coerce")
+#     df['Call_OI'] = pd.to_numeric(df['Call_OI'], errors="coerce")
+#     df['Put_OI'] = pd.to_numeric(df['Put_OI'], errors="coerce")
+#     df.dropna(inplace=True)
+
+#     support = df.loc[df['Strike'] <= spot].sort_values("Put_OI", ascending=False).iloc[0]['Strike']
+#     resistance = df.loc[df['Strike'] >= spot].sort_values("Call_OI", ascending=False).iloc[0]['Strike']
+
+#     return support, resistance
+
 def get_trade_levels(df, spot):
     df['Strike'] = pd.to_numeric(df['Strike'], errors="coerce")
     df['Call_OI'] = pd.to_numeric(df['Call_OI'], errors="coerce")
     df['Put_OI'] = pd.to_numeric(df['Put_OI'], errors="coerce")
     df.dropna(inplace=True)
 
-    support = df.loc[df['Strike'] <= spot].sort_values("Put_OI", ascending=False).iloc[0]['Strike']
-    resistance = df.loc[df['Strike'] >= spot].sort_values("Call_OI", ascending=False).iloc[0]['Strike']
+    support_zone = df.loc[df['Strike'] <= spot].sort_values("Put_OI", ascending=False)
+    resistance_zone = df.loc[df['Strike'] >= spot].sort_values("Call_OI", ascending=False)
+
+    if support_zone.empty or resistance_zone.empty:
+        raise ValueError("Could not find support or resistance levels — please check extracted data and spot price.")
+
+    support = support_zone.iloc[0]['Strike']
+    resistance = resistance_zone.iloc[0]['Strike']
 
     return support, resistance
+
 
 # 3. Generate CNC Trade Plan Card
 def plot_trade_plan(spot, support, resistance):
@@ -116,9 +134,13 @@ if uploaded_file and spot_price:
             st.subheader("📄 Extracted Option Chain")
             st.dataframe(df)
 
+
+        try:
             support, resistance = get_trade_levels(df, spot_price)
             st.success(f"🟢 Support: {support} | 🔴 Resistance: {resistance}")
-
+        
             st.subheader("🧾 CNC Trade Plan Card")
             plot_trade_plan(spot_price, support, resistance)
+        except ValueError as e:
+            st.error(f"❌ {str(e)}")
 
